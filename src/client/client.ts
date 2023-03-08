@@ -39,6 +39,15 @@ export class KyaClient extends Client {
   public loadEvents(eventsDir?: string) {
     if (eventsDir) this.eventsDir = eventsDir;
     if (!this.eventsDir) throw new Error("No commands directory provided.");
+
+    const dir: Array<string> = fs.readdirSync(`${this.eventsDir}`);
+    for (const file of dir) {
+      console.log("test");
+      const event = require(`../../../${this.eventsDir}/${file}`);
+      if (event.name && event.callback) {
+        console.log(`Loaded event: ${event.name}`);
+      }
+    }
   }
 }
 
@@ -46,8 +55,8 @@ export function create(options: KyaOptions | string | any) {
   const defaultOptions: KyaOptions = {
     failIfNotExists: false,
     intents: [GatewayIntentBits.Guilds],
-    eventsDir: "./events",
-    commandsDir: "./commands",
+    eventsDir: "events",
+    commandsDir: "commands",
   }
   if (typeof options === "string") {
     defaultOptions.token = options;
