@@ -1,6 +1,6 @@
 import { Client, ClientOptions, GatewayIntentBits, Collection } from "discord.js";
 import * as fs from "fs";
-const path = require("path");
+import { Event } from "./Event";
 
 interface KyaOptions extends ClientOptions {
   eventsDir?: string | undefined,
@@ -8,7 +8,7 @@ interface KyaOptions extends ClientOptions {
   token?: string | undefined,
 }
 
-class KyaClient extends Client {
+export class KyaClient extends Client {
   private eventsDir: string | undefined;
   private commandsDir: string | undefined;
   private commands: Collection<string, any>;
@@ -22,25 +22,23 @@ class KyaClient extends Client {
   }
 
   set setEventsDir(dir: string | undefined) {
+    if (!dir || typeof dir !== "string") throw new Error("Invalid events directory provided.");
     this.eventsDir = dir;
   }
 
   set setCommandsDir(dir: string | undefined) {
+    if (!dir || typeof dir !== "string") throw new Error("Invalid commands directory provided.");
     this.commandsDir = dir;
   }
 
   public async login(token?: string): Promise<string> {
+    if (!token && !this.token) throw new Error("No token provided.");
     return super.login(token);
   }
 
-  public loadEvents(commandsDir?: string) {
-    if (commandsDir) this.commandsDir = commandsDir;
-    if (!this.commandsDir) throw new Error("No commands directory provided.");
-
-    for (const file of fs.readdirSync(this.commandsDir)) {
-      const command: any = require(`${this.commandsDir}/${file}`);
-      console.log(command);
-    }
+  public loadEvents(eventsDir?: string) {
+    if (eventsDir) this.eventsDir = eventsDir;
+    if (!this.eventsDir) throw new Error("No commands directory provided.");
   }
 }
 
