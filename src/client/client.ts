@@ -1,65 +1,66 @@
 import { Client, ClientOptions, GatewayIntentBits, Collection } from "discord.js";
 import * as fs from "fs";
-import { Event } from "./Event";
+import { Event, eventCallback, callbackDefault, defaultEventsCb } from "./event";
+import { util } from "../index";
 
 interface KyaOptions extends ClientOptions {
-  eventsDir?: string | undefined,
-  commandsDir?: string | undefined,
   token?: string | undefined,
+  defaultEvents: string[],
 }
 
 export class KyaClient extends Client {
-  private eventsDir: string | undefined;
-  private commandsDir: string | undefined;
   private commands: Collection<string, any>;
+  private events: Collection<string, Event>;
+  private _token: string | undefined;
+  public defaultEvents: string[] = ["ready"];
 
   constructor(options: KyaOptions) {
     super(options);
-    this.eventsDir = options.eventsDir;
-    this.commandsDir = options.commandsDir;
 
     this.commands = new Collection();
+    this.events = new Collection();
+    this.defaultEvents = options.defaultEvents || ["ready"];
+    this._token = options.token || undefined;
+
+    for (const event of this.defaultEvents) {
+      this.bindEvent(event, defaultEventsCb.get(event) || callbackDefault);
+    }
   }
 
-  set setEventsDir(dir: string | undefined) {
-    if (!dir || typeof dir !== "string") throw new Error("Invalid events directory provided.");
-    this.eventsDir = dir;
+  public bindEvent(name: string, callback: eventCallback): Event {
+    if (!name || typeof name !== "string") throw new Error("Invalid event name provided.");
+    if (typeof callback !== "function") throw new Error("Invalid callback provided. It must be a function.");
+
+    const event: Event = new Event(this, name);
+    event.callback = callback;
+    this.events.set(name, event);
+
+    this[event.name === "ready" ? "once" : "on"](event.name, event.callbackFn);
+    return event;
   }
 
-  set setCommandsDir(dir: string | undefined) {
-    if (!dir || typeof dir !== "string") throw new Error("Invalid commands directory provided.");
-    this.commandsDir = dir;
+  public unbindEvent(name: string): boolean {
+    if (!name || typeof name !== "string") throw new Error("Invalid event name provided.");
+    return this.events.delete(name);
   }
 
   public async login(token?: string): Promise<string> {
-    if (!token && !this.token) throw new Error("No token provided.");
-    return super.login(token);
-  }
-
-  public loadEvents(eventsDir?: string) {
-    if (eventsDir) this.eventsDir = eventsDir;
-    if (!this.eventsDir) throw new Error("No commands directory provided.");
-
-    const dir: Array<string> = fs.readdirSync(`${this.eventsDir}`);
-    for (const file of dir) {
-      console.log("test");
-      const event = require(`../../../${this.eventsDir}/${file}`);
-      if (event.name && event.callback) {
-        console.log(`Loaded event: ${event.name}`);
-      }
-    }
+    if (!token && !this._token) throw new Error("No token provided.");
+    return super.login(token || this._token);
   }
 }
 
-export function create(options: KyaOptions | string | any) {
-  const defaultOptions: KyaOptions = {
+export function create(options: KyaOptions | string | any): KyaClient {
+  let defaultOptions: KyaOptions = {
     failIfNotExists: false,
     intents: [GatewayIntentBits.Guilds],
-    eventsDir: "events",
-    commandsDir: "commands",
+    defaultEvents: ["ready"],
   }
   if (typeof options === "string") {
     defaultOptions.token = options;
   }
-  return new KyaClient(Object.assign(defaultOptions, options));
+  else if (typeof options === "object") {
+    defaultOptions = Object.assign(defaultOptions, options)
+  }
+  return new KyaClient(defaultOptions);
 }
