@@ -34,8 +34,6 @@ export class KyaClient extends Client {
     const event: Event = new Event(this, name);
     event.callback = callback;
     this.events.set(name, event);
-
-    this[event.name === "ready" ? "once" : "on"](event.name, event.callbackFn);
     return event;
   }
 
@@ -46,6 +44,11 @@ export class KyaClient extends Client {
 
   public async login(token?: string): Promise<string> {
     if (!token && !this._token) throw new Error("No token provided.");
+
+    this.events.each((event: Event) => {
+      this[event.name === "ready" ? "once" : "on"](event.name, event.callbackFn);
+    });
+
     return super.login(token || this._token);
   }
 }
