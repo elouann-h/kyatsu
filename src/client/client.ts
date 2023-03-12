@@ -1,11 +1,12 @@
 import { Client, ClientOptions, GatewayIntentBits, Collection } from "discord.js";
-import * as fs from "fs";
 import { Event, eventCallback, callbackDefault, defaultEventsCb } from "./event";
 import { util } from "../index";
 
-interface KyaOptions extends ClientOptions {
+export type  AvailableEvent = "ready" | "interactionCreate";
+
+export interface KyaOptions extends ClientOptions {
   token?: string | undefined,
-  defaultEvents: string[],
+  defaultEvents: AvailableEvent[],
 }
 
 export class KyaClient extends Client {

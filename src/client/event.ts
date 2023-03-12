@@ -9,7 +9,7 @@ export async function callbackDefault(...args: any[]): Promise<void> {
 
 export class Event {
   public client: KyaClient;
-  public name: string;
+  public readonly name: string;
   private _callback: eventCallback;
 
   constructor(client: KyaClient, name: string) {
